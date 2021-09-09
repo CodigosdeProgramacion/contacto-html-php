@@ -13,7 +13,19 @@ if (isset($_POST['submit'])) {
     $asunto = $_POST['asunto'];
     $mensaje = $_POST['mensaje'];
 
+    $ip = $_SERVER["REMOTE_ADDR"];
+    $captcha = $_POST['g-recaptcha-response'];
+    $secretKey = 'aqui va la clave secreta';
+
     $errors = array();
+
+    $response = file_get_contents("https://www.google.com/recaptcha/api/siteverify?secret={$secretKey}&response={$recaptchaResponse}&remoteip={$ip}");
+
+    $atributos = json_decode($response, TRUE);
+
+    if (!$atributos['success']) {
+        $errors[] = 'Verifica el captcha';
+    }
 
     if (empty($nombre)) {
         $errors[] = 'El campo nombre es obligatorio';
@@ -79,6 +91,8 @@ if (isset($_POST['submit'])) {
     <title>Contacto</title>
     <link href="css/bootstrap.min.css" rel="stylesheet">
     <script src="js/bootstrap.bundle.min.js"></script>
+
+    <script src='https://www.google.com/recaptcha/api.js'></script>
 </head>
 
 <body>
@@ -131,6 +145,10 @@ if (isset($_POST['submit'])) {
                         <div class="mb-3">
                             <label for="mensaje" class="form-label"> Mensaje</label>
                             <textarea class="form-control" id="mensaje" name="mensaje" rows="3" required></textarea>
+                        </div>
+
+                        <div class="mb-3">
+                            <div class="g-recaptcha" data-sitekey="aqui va la clave del sitio"></div>
                         </div>
 
                         <button type="submit" name="submit" class="btn btn-primary">Enviar</button>
