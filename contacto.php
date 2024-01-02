@@ -1,6 +1,8 @@
 <?php
 
-use PHPMailer\PHPMailer\{PHPMailer, SMTP, Exception};
+use PHPMailer\PHPMailer\PHPMailer;
+use PHPMailer\PHPMailer\SMTP;
+use PHPMailer\PHPMailer\Exception;
 
 require 'PHPMailer/src/Exception.php';
 require 'PHPMailer/src/PHPMailer.php';
@@ -12,44 +14,48 @@ if (isset($_POST['submit'])) {
     $email = $_POST['email'];
     $asunto = $_POST['asunto'];
     $mensaje = $_POST['mensaje'];
-
     $ip = $_SERVER["REMOTE_ADDR"];
     $captcha = $_POST['g-recaptcha-response'];
     $secretKey = 'aqui va la clave secreta';
 
     $errors = array();
 
-    $response = file_get_contents("https://www.google.com/recaptcha/api/siteverify?secret={$secretKey}&response={$recaptchaResponse}&remoteip={$ip}");
+    $response = file_get_contents("https://www.google.com/recaptcha/api/siteverify?secret={$secretKey}&response={$captcha}&remoteip={$ip}");
 
-    $atributos = json_decode($response, TRUE);
+    $atributos = json_decode($response, true);
 
-    if (!$atributos['success']) {
+    if (empty($atributos) || !$atributos['success']) {
         $errors[] = 'Verifica el captcha';
     }
 
-    if (empty($nombre)) {
-        $errors[] = 'El campo nombre es obligatorio';
+    $camposObligatorios = [
+        'nombre'  => 'El campo nombre es obligatorio',
+        'email'   => 'El campo dirección es obligatorio',
+        'asunto'  => 'El campo asunto es obligatorio',
+        'mensaje' => 'El campo mensaje es obligatorio'
+    ];
+
+    foreach ($camposObligatorios as $campo => $mensajeError) {
+        if (empty($_POST[$campo])) {
+            $errors[] = $mensajeError;
+        }
     }
 
     if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
         $errors[] = 'La dirección de correo electrónico no es válida';
     }
 
-    if (empty($asunto)) {
-        $errors[] = 'El campo asunto es obligatorio';
+    if (strlen($mensaje) < 10) {
+        $errors[] = 'El campo mensaje es muy pequeño';
     }
 
-    if (empty($mensaje)) {
-        $errors[] = 'El campo mensaje es obligatorio';
-    }
-
-    if (count($errors) == 0) {
+    if (empty($errors)) {
 
         $msj = "De: $nombre <a href='mailto:$email'>$email</a><br>";
-        $msj .= "Asunto: $asunto<br><br>";
-        $msj .= "Cuerpo del mensaje:";
+        $msj .= 'Asunto: ' . $asunto . '<br><br>';
+        $msj .= 'Cuerpo del mensaje:';
         $msj .= '<p>' . $mensaje . '</p>';
-        $msj .= "--<p>Este mensaje se ha enviado desde un formulario de contacto de Código de programación.</p>";
+        $msj .= '--<p>Este mensaje se ha enviado desde un formulario de contacto de Código de programación.</p>';
 
         $mail = new PHPMailer(true);
 
@@ -89,6 +95,8 @@ if (isset($_POST['submit'])) {
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Contacto</title>
+    <meta name="description" content="Formulario de contacto CDP">
+    <meta name="author" content="MRoblesDev">
     <link href="css/bootstrap.min.css" rel="stylesheet">
     <script src="js/bootstrap.bundle.min.js"></script>
 
@@ -102,26 +110,20 @@ if (isset($_POST['submit'])) {
                 <h1 class="fs-4">Contacto</h1>
             </header>
 
-            <?php
-            if (isset($errors)) {
-                if (count($errors) > 0) {
-            ?>
-                    <div class="row">
-                        <div class="col-lg-6 col-md-12">
-                            <div class="alert alert-danger alert-dismissible fade show" role="alert">
-                                <?php
-                                foreach ($errors as $error) {
-                                    echo $error . '<br>';
-                                }
-                                ?>
-                                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                            </div>
+            <?php if (isset($errors) && !empty($errors)) : ?>
+                <div class="row">
+                    <div class="col-lg-6 col-md-12">
+                        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                            <?php
+                            foreach ($errors as $error) {
+                                echo $error . '<br>';
+                            }
+                            ?>
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                         </div>
                     </div>
-            <?php
-                }
-            }
-            ?>
+                </div>
+            <?php endif; ?>
 
             <div class="row">
                 <div class="col-lg-6 col-md-12">
@@ -169,7 +171,7 @@ if (isset($_POST['submit'])) {
             <?php } ?>
 
             <footer class="pt-3 mt-4 text-muted border-top">
-                Códigos de Programación &copy; 2021
+                Códigos de Programación &copy; <?php echo date('Y'); ?>
             </footer>
 
         </div>
